@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1,
+        maximum-scale=1, user-scalable=no">
+
+  <title>Dark AR Card</title>
+
+  <!-- Library -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+    }
+
+    /* Full-screen AR */
+    a-scene {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 1;
+    }
+
+    a-scene canvas {
+      background: transparent !important;
+    }
+
+    /* Dua tombol mengambang */
+    .floating-controls {
+      position: fixed;
+      z-index: 9999;
+      left: 50%;
+      bottom: calc(28px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      pointer-events: none;
+    }
+
+    /* Glassmorphism ringan */
+    .control-btn {
+      width: 58px;
+      height: 58px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.30);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.10);
+      color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow:
+        0 4px 18px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      outline: none;
+      pointer-events: auto;
+      transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        transform 0.2s ease,
+        opacity 0.2s ease;
+    }
+
+    .control-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.20);
+    }
+
+    .control-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      display: block;
+    }
+
+    .control-btn.active {
+      background: rgba(255, 255, 255, 0.19);
+      border-color: rgba(255, 255, 255, 0.48);
+    }
+
+    .control-btn:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    @media (max-height: 500px) {
+      .floating-controls {
+        bottom: calc(14px + env(safe-area-inset-bottom));
+      }
+
+      .control-btn {
+        width: 50px;
+        height: 50px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Dua tombol saja -->
+  <div class="floating-controls">
+    <!-- Tombol kamera -->
+    <button
+      id="cameraBtn"
+      class="control-btn"
+      type="button"
+      aria-label="Mulai kamera"
+      title="Mulai kamera">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7.5h3l1.7-2h6.6l1.7 2h3v11H4z"/>
+        <circle cx="12" cy="13" r="3.5"/>
+      </svg>
+    </button>
+
+    <!-- Tombol pemutar musik -->
+    <button
+      id="musicBtn"
+      class="control-btn"
+      type="button"
+      aria-label="Putar musik"
+      title="Putar musik"
+      aria-pressed="false">
+      <svg id="musicIcon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 18V5l11-2v13"/>
+        <circle cx="6" cy="18" r="3"/>
+        <circle cx="17" cy="16" r="3"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- File musik -->
+  <audio id="backgroundMusic" src="music/music.m4a" loop preload="none"></audio>
+
+  <!-- AR Scene -->
+  <a-scene
+    id="arScene"
+    embedded
+    mindar-image="
+      imageTargetSrc: targets/target.mind;
+      autoStart: false;
+      uiLoading: no;
+      uiScanning: no;
+      uiError: no;
+    "
+    renderer="
+      alpha: true;
+      colorManagement: true;
+      physicallyCorrectLights: false;
+      antialias: true;
+    "
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <!-- PENCAHAYAAN TAMBAHAN UNTUK MODEL GLB -->
+    <a-entity
+      light="type: ambient; color: #ffffff; intensity: 1.5">
+    </a-entity>
+
+    <a-entity
+      light="type: directional; color: #ffffff; intensity: 1.2"
+      position="0 3 4">
+    </a-entity>
+
+    <a-entity
+      light="type: directional; color: #dce8ff; intensity: 0.6"
+      position="-3 1 2">
+    </a-entity>
+
+    <a-assets timeout="20000">
+      <a-asset-item id="characterAsset" src="models/character.glb"></a-asset-item>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- Target kartu -->
+    <a-entity id="cardTarget" mindar-image-target="targetIndex: 0">
+      <a-entity
+        id="characterModel"
+        gltf-model="#characterAsset"
+        position="0.00 0.50 0.02"
+        rotation="-90 0 0"
+        scale="1.00 1.00 1.00"
+        animation-mixer="
+          clip: *;
+          loop: repeat;
+          timeScale: 1;
+        ">
+      </a-entity>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const scene = document.querySelector("#arScene");
+    const cameraBtn = document.querySelector("#cameraBtn");
+    const musicBtn = document.querySelector("#musicBtn");
+    const music = document.querySelector("#backgroundMusic");
+    const model = document.querySelector("#characterModel");
+    const target = document.querySelector("#cardTarget");
+
+    let cameraStarted = false;
+    let cameraStarting = false;
+    let musicPlaying = false;
+
+    const cameraSvg = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7.5h3l1.7-2h6.6l1.7 2h3v11H4z"/>
+        <circle cx="12" cy="13" r="3.5"/>
+      </svg>
+    `;
+
+    const musicOnSvg = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 18V5l11-2v13"/>
+        <circle cx="6" cy="18" r="3"/>
+        <circle cx="17" cy="16" r="3"/>
+      </svg>
+    `;
+
+    const musicOffSvg = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 18V5l11-2v13"/>
+        <circle cx="6" cy="18" r="3"/>
+        <circle cx="17" cy="16" r="3"/>
+        <path d="M3 3l18 18"/>
+      </svg>
+    `;
+
+    // Mulai kamera AR
+    cameraBtn.addEventListener("click", async () => {
+      if (cameraStarted || cameraStarting) return;
+
+      cameraStarting = true;
+      cameraBtn.disabled = true;
+
+      try {
+        const system = scene.systems["mindar-image-system"];
+        if (!system) throw new Error("Sistem MindAR belum tersedia.");
+
+        await system.start();
+        cameraStarted = true;
+        cameraBtn.classList.add("active");
+        cameraBtn.innerHTML = cameraSvg;
+        cameraBtn.setAttribute("aria-label", "Kamera aktif");
+        cameraBtn.title = "Kamera aktif";
+        console.log("Kamera AR aktif.");
+      } catch (error) {
+        console.error("Gagal memulai kamera:", error);
+        cameraBtn.disabled = false;
+        cameraBtn.classList.remove("active");
+        cameraBtn.setAttribute("aria-label", "Coba mulai kamera");
+        cameraBtn.title = "Coba mulai kamera";
+      } finally {
+        cameraStarting = false;
+      }
+    });
+
+    // Putar atau hentikan musik
+    musicBtn.addEventListener("click", async () => {
+      if (!musicPlaying) {
+        try {
+          await music.play();
+          musicPlaying = true;
+          musicBtn.classList.add("active");
+          musicBtn.innerHTML = musicOnSvg;
+          musicBtn.setAttribute("aria-pressed", "true");
+          musicBtn.setAttribute("aria-label", "Matikan musik");
+          musicBtn.title = "Matikan musik";
+        } catch (error) {
+          console.error("Musik gagal diputar:", error);
+        }
+      } else {
+        music.pause();
+        musicPlaying = false;
+        musicBtn.classList.remove("active");
+        musicBtn.innerHTML = musicOffSvg;
+        musicBtn.setAttribute("aria-pressed", "false");
+        musicBtn.setAttribute("aria-label", "Putar musik");
+        musicBtn.title = "Putar musik";
+      }
+    });
+
+    music.addEventListener("error", () => {
+      console.error("File musik tidak ditemukan atau gagal dimuat:", music.currentSrc);
+    });
+
+    target.addEventListener("targetFound", () => {
+      console.log("Kartu terdeteksi.");
+    });
+
+    target.addEventListener("targetLost", () => {
+      console.log("Kartu tidak terdeteksi.");
+    });
+
+    model.addEventListener("model-loaded", event => {
+      const clips = event.detail.model.animations || [];
+      console.log("Model GLB berhasil dimuat.");
+      console.log("Animasi tersedia:", clips.map(clip => clip.name));
+      if (clips.length === 0) console.warn("Model GLB tidak memiliki animasi.");
+    });
+
+    model.addEventListener("model-error", event => {
+      console.error("Model GLB gagal dimuat:", event.detail);
+    });
+
+    scene.addEventListener("loaded", () => {
+      console.log("A-Frame siap.");
+    });
+
+    scene.addEventListener("arError", event => {
+      console.error("Kesalahan MindAR:", event.detail);
+    });
+
+    music.addEventListener("pause", () => {
+      if (!musicPlaying) return;
+      musicPlaying = false;
+      musicBtn.classList.remove("active");
+      musicBtn.innerHTML = musicOffSvg;
+      musicBtn.setAttribute("aria-pressed", "false");
+      musicBtn.setAttribute("aria-label", "Putar musik");
+      musicBtn.title = "Putar musik";
+    });
+  </script>
+</body>
+</html>
